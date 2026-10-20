@@ -1,9 +1,9 @@
-# CAAB ÉVÉNEMENTS — Première maquette
+# CAAB ÉVÉNEMENTS — Maquette V2
 
-Décoration et création sur mesure en Ardèche. Prototype réalisé avec les photographies et le logo fournis pour le projet.
+Décoration et mise en scène sur mesure en Ardèche. Direction artistique : « Le pli d’un moment », avec les photographies réelles fournies et une identité typographique simplifiée.
 
 Site statique en HTML, CSS et JavaScript. Ouvrir `index.html` avec un serveur local ou consulter GitHub Pages.
 
-Le formulaire est une démonstration : il n’envoie et ne conserve aucune demande. Les photos présentent une seule réception réelle, à différents moments de la journée.
+Le formulaire est une démonstration : il prépare un récapitulatif modifiable et copiable, sans envoyer ni conserver de demande. Les quatorze photographies présentent une seule réception réelle, accessible par trois regards et un album complet.
 
-Les polices Bodoni Moda et Hanken Grotesk sont incluses avec leurs licences OFL dans `assets/fonts`.
+Les polices Marcellus et Hanken Grotesk sont auto-hébergées avec leurs licences OFL dans `assets/fonts`. Les anciens fichiers Bodoni sont conservés sans être chargés.
