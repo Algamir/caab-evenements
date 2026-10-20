@@ -3,29 +3,47 @@ const content = window.CAAB_CONTENT;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const assetPath = (id, small = false) => `assets/reception-${String(id).padStart(2, '0')}${small ? '-small' : ''}.webp`;
 const views = {
-  lieu: {id:7, caption:'Les tables, les volumes, les couleurs : un même fil conducteur dans toute la salle.', position:'50% 58%'},
-  table: {id:5, caption:'Le bleu du linge, le blanc des assiettes, la transparence du verre. Chaque place prolonge le décor.', position:'50% 68%'},
-  lumiere: {id:14, caption:'La même réception à la nuit tombée. Les lumières ponctuent les tables et le décor change de présence.', position:'50% 62%'}
+  jour: {id:5, label:'Le jour', caption:'Le bleu du linge, le blanc des assiettes, la transparence du verre. Chaque place prolonge le décor.'},
+  soir: {id:14, label:'Le soir', caption:'La même réception à la nuit tombée. Les lumières ponctuent les tables et le décor change de présence.'}
 };
-const sceneImage = document.querySelector('#scene-image');
+const sceneStage = document.querySelector('#day-night-stage');
 const sceneOpen = document.querySelector('#scene-open');
-let sceneId = 7;
-let sceneRequest = 0;
-document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
-  const view = views[button.dataset.view];
+const sceneButtons = [...document.querySelectorAll('[data-view]')];
+let sceneId = views.jour.id;
+let sceneNight = false;
+
+function updateScene(night, updateVisual = false) {
+  sceneNight = Boolean(night);
+  const view = views[sceneNight ? 'soir' : 'jour'];
   sceneId = view.id;
   const photo = content.photos.find(photo => photo.id === sceneId);
-  document.querySelectorAll('[data-view]').forEach(item => item.setAttribute('aria-pressed',String(item === button)));
-  sceneImage.src = assetPath(view.id);
-  sceneImage.alt = photo.alt;
-  sceneImage.style.objectPosition = view.position;
+  sceneButtons.forEach(button => button.setAttribute('aria-pressed',String(button.dataset.view === (sceneNight ? 'soir' : 'jour'))));
+  document.querySelectorAll('[data-scene-state]').forEach(label => {label.textContent = view.label;});
   sceneOpen.setAttribute('aria-label',`Agrandir : ${photo.caption}`);
   document.querySelector('#scene-caption').textContent = view.caption;
-  const request = ++sceneRequest;
-  sceneImage.decode().then(() => {
-    if (request === sceneRequest && !reducedMotion.matches) sceneImage.animate([{opacity:.5},{opacity:1}],{duration:320,easing:'ease-out'});
-  }).catch(() => {});
+  if (updateVisual) sceneStage.classList.toggle('is-night',sceneNight);
+  if (lightbox.open && lightboxFollowsScene) {
+    photoIndex = content.photos.findIndex(item => item.id === sceneId);
+    updatePhoto();
+  }
+}
+
+sceneButtons.forEach(button => button.addEventListener('click',() => {
+  const night = button.dataset.view === 'soir';
+  updateScene(night);
+  const handled = window.CAAB_MOTION?.setScene(night) === true;
+  if (!handled) sceneStage.classList.toggle('is-night',night);
+  document.dispatchEvent(new CustomEvent('caab:scene-change',{detail:{night}}));
 }));
+
+document.addEventListener('caab:scene-progress',event => {
+  const detail = event.detail;
+  const night = typeof detail?.night === 'boolean' ? detail.night : Number(detail?.progress ?? detail) >= 0.5;
+  if (night !== sceneNight) updateScene(night);
+});
+reducedMotion.addEventListener('change',() => {
+  sceneStage.classList.toggle('is-night',sceneNight);
+});
 
 const albumGrid = document.querySelector('#album-grid');
 content.photos.forEach((photo,index) => {
@@ -44,20 +62,27 @@ content.photos.forEach((photo,index) => {
 const lightbox = document.querySelector('#lightbox');
 const photoImage = document.querySelector('#lightbox-image');
 let photoIndex = 0;
+let lightboxTrigger = null;
+let lightboxFollowsScene = false;
 function updatePhoto() {
   const photo = content.photos[photoIndex];
   photoImage.src = assetPath(photo.id); photoImage.alt = photo.alt;
   document.querySelector('#lightbox-counter').textContent = `${photoIndex + 1} / ${content.photos.length} · Une seule réception CAAB`;
   document.querySelector('#lightbox-caption').textContent = photo.caption;
 }
-function showPhoto(id) {
+function showPhoto(id, trigger = document.activeElement) {
   photoIndex = content.photos.findIndex(photo => photo.id === id);
   if (photoIndex < 0) return;
   updatePhoto();
-  if (!lightbox.open) lightbox.showModal();
+  if (!lightbox.open) {
+    lightboxTrigger = trigger;
+    lightboxFollowsScene = trigger === sceneOpen;
+    lightbox.showModal();
+  }
 }
-function movePhoto(delta) {photoIndex = (photoIndex + delta + content.photos.length) % content.photos.length; updatePhoto();}
-sceneOpen.addEventListener('click',() => showPhoto(sceneId));
+function movePhoto(delta) {lightboxFollowsScene = false;photoIndex = (photoIndex + delta + content.photos.length) % content.photos.length;updatePhoto();}
+sceneOpen.addEventListener('click',() => showPhoto(sceneId,sceneOpen));
+document.querySelectorAll('[data-photo]').forEach(button => button.addEventListener('click',() => showPhoto(Number(button.dataset.photo),button)));
 document.querySelector('#lightbox-close').addEventListener('click',() => lightbox.close());
 document.querySelector('#photo-prev').addEventListener('click',() => movePhoto(-1));
 document.querySelector('#photo-next').addEventListener('click',() => movePhoto(1));
@@ -74,7 +99,13 @@ photoImage.addEventListener('touchend',event => {
   touchStart = null;
 },{passive:true});
 photoImage.addEventListener('touchcancel',() => {touchStart = null;},{passive:true});
-lightbox.addEventListener('close',() => {touchStart = null;});
+lightbox.addEventListener('close',() => {
+  touchStart = null;
+  lightboxFollowsScene = false;
+  if (lightboxTrigger?.isConnected) lightboxTrigger.focus({preventScroll:true});
+  lightboxTrigger = null;
+});
+updateScene(false,true);
 
 const toggle = document.querySelector('.menu-toggle');
 const nav = document.querySelector('.main-nav');
@@ -91,11 +122,15 @@ window.matchMedia('(min-width: 801px)').addEventListener('change',event => {if (
 const form = document.querySelector('#quote-form');
 const result = document.querySelector('#form-result');
 const date = document.querySelector('#event-date');
-const now = new Date();
-date.min = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+function updateDateMinimum() {
+  const now = new Date();
+  date.min = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+}
+updateDateMinimum();
 const fields = [...form.querySelectorAll('input,select,textarea')];
 const messages = {event:'Choisissez une occasion.',place:'Précisez la commune ou le lieu.',message:'Racontez-nous vos envies en quelques mots.',name:'Indiquez votre nom.',email:'Indiquez une adresse e-mail, par exemple vous@exemple.fr.'};
 function validate(field) {
+  if (field === date) updateDateMinimum();
   const valid = field.checkValidity() && (!field.required || field.value.trim().length > 0);
   const error = document.getElementById(`${field.id}-error`);
   field.setAttribute('aria-invalid',String(!valid));
@@ -141,3 +176,6 @@ document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('c
   const rect=dialog.getBoundingClientRect();
   if (event.target===dialog && (event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom)) dialog.close();
 }));
+
+document.querySelector('#quote-fields').disabled = false;
+document.querySelector('#quote-submit').disabled = false;

@@ -1,0 +1,26 @@
+{
+  "name": "GSAP",
+  "version": "3.15.0",
+  "retrieved": "2026-10-20",
+  "source": "https://registry.npmjs.org/gsap/-/gsap-3.15.0.tgz",
+  "integrity": "sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==",
+  "license": "Standard No Charge GSAP License",
+  "licenseUrl": "https://gsap.com/community/standard-license/",
+  "files": [
+    {
+      "name": "gsap.min.js",
+      "bytes": 72927,
+      "sha256": "92bb9a96476f983d212a2bc4f54c889039c1696dd4461d40a736860938570fbb"
+    },
+    {
+      "name": "ScrollTrigger.min.js",
+      "bytes": 44575,
+      "sha256": "b0b14d67b55b0c43c756ac0b106cfcb09d0879945f6ead64451065b0672916a2"
+    },
+    {
+      "name": "SplitText.min.js",
+      "bytes": 7732,
+      "sha256": "419f7027a5f086a12cb7988736d8fdd3a6ed2200229661de25b6628ca7ced344"
+    }
+  ]
+}
